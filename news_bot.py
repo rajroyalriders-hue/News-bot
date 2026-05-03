@@ -58,10 +58,7 @@ NEWS_SOURCES = [
         "name": "LiveMint Markets",
         "url":  "https://www.livemint.com/rss/markets",
     },
-    {
-        "name": "Reuters Business",
-        "url":  "https://feeds.reuters.com/reuters/businessNews",
-    },
+
     {
         "name": "CNBC World Markets",
         "url":  "https://www.cnbc.com/id/15839069/device/rss/rss.html",
@@ -147,26 +144,35 @@ def ai_filter_and_format(news_items):
 
     prompt = f"""You are an Indian stock market news filter and analyst.
 
-From the following news items, select those that could impact Indian markets including:
-1. Indian stock market news (NSE, BSE, Nifty, Sensex movements)
-2. Indian company news (earnings, results, mergers, acquisitions, management changes)
-3. RBI/SEBI/Government policy decisions
-4. US Fed, ECB rate decisions and statements
-5. Trump tweets/statements about trade, tariffs, India, China, oil
-6. Crude oil, gold, dollar index major moves
-7. US-China trade war updates
-8. Global recession fears or growth data
-9. FII/DII flows, IPOs, bulk deals
-10. Any geopolitical event affecting global markets
+PRIORITY ORDER (post in this order):
+🥇 HIGHEST PRIORITY — Post first:
+- Any Trump statement, tweet, tariff, trade deal, threat related to India/China/Oil/Markets
+- Trump vs Fed, Trump trade war updates
 
-Be INCLUSIVE — even small news that could cause 0.5% move in Nifty is relevant.
+🥈 HIGH PRIORITY:
+- Indian stock market news (NSE, BSE, Nifty, Sensex movements)
+- Indian company news (earnings, results, mergers, acquisitions)
+- RBI/SEBI/Government policy decisions affecting markets
+- Indian politics news IF it directly impacts economy or markets (election results, budget, GST, policy changes)
+
+🥉 MEDIUM PRIORITY:
+- US Fed, ECB rate decisions
+- Crude oil, gold, dollar index major moves
+- US-China trade war updates
+- Global recession fears or growth data
+- FII/DII flows, IPOs, bulk deals
+- Any geopolitical event affecting global markets
+
+Be INCLUSIVE — even small news scoring 4+ is worth posting.
 
 EXCLUDE only:
 - Pure sports, entertainment with zero market relevance
-- Highly local political news with no market impact
+- Local crime/accident news
+- Celebrity gossip
 
 For each selected news:
-- Relevance score (1-10) — be generous, score 4+ for anything with even small market impact
+- Relevance score (1-10)
+- Priority: HIGH / MEDIUM / LOW
 - Market impact: BULLISH / BEARISH / NEUTRAL
 - One line summary mentioning WHY it affects Indian market
 
@@ -222,6 +228,14 @@ def format_news_message(news_item, ai_info):
     else:
         imp_emoji = "🟡 NEUTRAL"
 
+    priority = ai_info.get("priority", "MEDIUM")
+    if priority == "HIGH":
+        priority_str = "🔴 HIGH"
+    elif priority == "LOW":
+        priority_str = "🟢 LOW"
+    else:
+        priority_str = "🟡 MEDIUM"
+
     # Relevance bar
     bar = "█" * score + "░" * (10 - score)
 
@@ -231,7 +245,7 @@ def format_news_message(news_item, ai_info):
 
 💡 **AI Summary:** {summary}
 
-📊 **Market Impact:** {imp_emoji}
+📊 **Market Impact:** {imp_emoji} | ⚡ **Priority:** {priority_str}
 📈 **Relevance:** [{bar}] {score}/10
 📡 **Source:** {source}
 🕐 **Time:** {datetime.now().strftime("%d %b %Y %H:%M")}
